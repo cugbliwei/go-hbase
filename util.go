@@ -1,9 +1,9 @@
 package hbase
 
 import (
-	pb "github.com/golang/protobuf/proto"
-
 	"sync"
+
+	pb "github.com/golang/protobuf/proto"
 )
 
 type atomicCounter struct {

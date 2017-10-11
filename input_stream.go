@@ -2,9 +2,10 @@ package hbase
 
 import (
 	"encoding/binary"
-	pb "github.com/golang/protobuf/proto"
 	"io"
 	"net"
+
+	pb "github.com/golang/protobuf/proto"
 )
 
 type inputStream struct {

@@ -1,8 +1,8 @@
 package hbase
 
 import (
+	"github.com/cugbliwei/go-hbase/proto"
 	pb "github.com/golang/protobuf/proto"
-	"github.com/lazyshot/go-hbase/proto"
 
 	"reflect"
 )

@@ -2,6 +2,7 @@ package hbase
 
 import (
 	"encoding/binary"
+
 	pb "github.com/golang/protobuf/proto"
 )
 

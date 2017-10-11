@@ -1,8 +1,8 @@
 package hbase
 
 import (
+	"github.com/cugbliwei/go-hbase/proto"
 	pb "github.com/golang/protobuf/proto"
-	"github.com/lazyshot/go-hbase/proto"
 	"github.com/op/go-logging"
 	"github.com/samuel/go-zookeeper/zk"
 
@@ -21,6 +21,7 @@ type Client struct {
 	zkHosts          []string
 	zkRoot           string
 	zkRootRegionPath string
+	user             string
 
 	servers               map[string]*connection
 	cachedRegionLocations map[string]map[string]*regionInfo
@@ -51,11 +52,12 @@ func init() {
 	zk.DefaultLogger = &silentLogger{}
 }
 
-func NewClient(zkHosts []string, zkRoot string) *Client {
+func NewClient(zkHosts []string, zkRoot, user string) *Client {
 	cl := &Client{
 		zkHosts:          zkHosts,
 		zkRoot:           zkRoot,
 		zkRootRegionPath: "/meta-region-server",
+		user:             user,
 
 		servers:               make(map[string]*connection),
 		cachedRegionLocations: make(map[string]map[string]*regionInfo),
@@ -129,7 +131,7 @@ func (c *Client) getRegionConnection(server string) *connection {
 		return s
 	}
 
-	conn, err := newConnection(server, false)
+	conn, err := newConnection(server, c.user, false)
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +147,7 @@ func (c *Client) getMasterConnection() *connection {
 		return s
 	}
 
-	conn, err := newConnection(server, true)
+	conn, err := newConnection(server, c.user, true)
 	if err != nil {
 		panic(err)
 	}

@@ -2,8 +2,9 @@ package hbase
 
 import (
 	"bytes"
-	"github.com/lazyshot/go-hbase/proto"
 	"time"
+
+	"github.com/cugbliwei/go-hbase/proto"
 )
 
 type ResultRow struct {

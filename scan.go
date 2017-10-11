@@ -1,15 +1,14 @@
 package hbase
 
 import (
-	"math"
-	"time"
-
-	pb "github.com/golang/protobuf/proto"
-	"github.com/lazyshot/go-hbase/proto"
-
 	"bytes"
 	"fmt"
+	"math"
 	"strings"
+	"time"
+
+	"github.com/cugbliwei/go-hbase/proto"
+	pb "github.com/golang/protobuf/proto"
 )
 
 type Scan struct {

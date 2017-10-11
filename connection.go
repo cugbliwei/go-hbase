@@ -1,8 +1,8 @@
 package hbase
 
 import (
+	"github.com/cugbliwei/go-hbase/proto"
 	pb "github.com/golang/protobuf/proto"
-	"github.com/lazyshot/go-hbase/proto"
 
 	"fmt"
 	"net"
@@ -10,6 +10,7 @@ import (
 
 type connection struct {
 	connstr string
+	user    string
 
 	id   int
 	name string
@@ -25,7 +26,7 @@ type connection struct {
 
 var connectionIds *atomicCounter = newAtomicCounter()
 
-func newConnection(connstr string, isMaster bool) (*connection, error) {
+func newConnection(connstr, user string, isMaster bool) (*connection, error) {
 	id := connectionIds.IncrAndGet()
 
 	log.Debug("Connecting to server[id=%d] [%s]", id, connstr)
@@ -38,6 +39,7 @@ func newConnection(connstr string, isMaster bool) (*connection, error) {
 
 	c := &connection{
 		connstr: connstr,
+		user:    user,
 
 		id:   id,
 		name: fmt.Sprintf("connection(%s) id: %d", connstr, id),
@@ -98,7 +100,7 @@ func (c *connection) writeConnectionHeader() error {
 
 	err := buf.WritePBMessage(&proto.ConnectionHeader{
 		UserInfo: &proto.UserInformation{
-			EffectiveUser: pb.String("bryan"),
+			EffectiveUser: pb.String(c.user),
 		},
 		ServiceName: service,
 	})

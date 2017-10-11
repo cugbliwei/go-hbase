@@ -1,7 +1,7 @@
 package hbase
 
 import (
-	"github.com/lazyshot/go-hbase/proto"
+	"github.com/cugbliwei/go-hbase/proto"
 
 	"fmt"
 )
