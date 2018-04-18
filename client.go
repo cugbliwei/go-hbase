@@ -1,19 +1,18 @@
 package hbase
 
 import (
-	"github.com/cugbliwei/go-hbase/proto"
-	pb "github.com/golang/protobuf/proto"
-	"github.com/op/go-logging"
-	"github.com/samuel/go-zookeeper/zk"
-
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/cugbliwei/dlog"
+	"github.com/cugbliwei/go-hbase/proto"
+	pb "github.com/golang/protobuf/proto"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 type Client struct {
@@ -34,21 +33,11 @@ type Client struct {
 	masterServer *proto.ServerName
 }
 
-var log = logging.MustGetLogger("hbase-client")
-var format = logging.MustStringFormatter(
-	"%{color}%{time:15:04:05.000} %{shortfunc} [%{level:.5s}]:%{color:reset} %{message}",
-)
-
 type silentLogger struct{}
 
 func (silentLogger) Printf(format string, a ...interface{}) {}
 
 func init() {
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
-	backendFormatter := logging.NewBackendFormatter(backend, format)
-	logging.SetBackend(backendFormatter)
-
-	logging.SetLevel(logging.INFO, "hbase-client")
 	zk.DefaultLogger = &silentLogger{}
 }
 
@@ -70,15 +59,11 @@ func NewClient(zkHosts []string, zkRoot, user string) *Client {
 	return cl
 }
 
-func (c *Client) SetLogLevel(level string) {
-	lvl, _ := logging.LogLevel(level)
-	logging.SetLevel(lvl, "hbase-client")
-}
-
 func (c *Client) initZk() {
 	zkclient, _, err := zk.Connect(c.zkHosts, time.Second*30)
 	if err != nil {
-		panic(err)
+		dlog.Warn("zk connect error: %v", err)
+		return
 	}
 
 	c.zkClient = zkclient
@@ -86,7 +71,8 @@ func (c *Client) initZk() {
 	res, _, _, err := c.zkClient.GetW(c.zkRoot + c.zkRootRegionPath)
 
 	if err != nil {
-		panic(err)
+		dlog.Warn("zk getw zkRootRegionPath error: %v", err)
+		return
 	}
 
 	c.rootServer = c.decodeMeta(res)
@@ -95,7 +81,8 @@ func (c *Client) initZk() {
 	res, _, _, err = c.zkClient.GetW(c.zkRoot + "/master")
 
 	if err != nil {
-		panic(err)
+		dlog.Warn("zk getw zkRoot error: %v", err)
+		return
 	}
 
 	c.masterServer = c.decodeMeta(res)
@@ -171,8 +158,6 @@ func (c *Client) adminAction(req pb.Message) chan pb.Message {
 }
 
 func (c *Client) action(table, row []byte, action action, useCache bool, retries int) chan pb.Message {
-	log.Debug("Attempting action [table: %s] [row: %s] [action: %#v] [useCache: %t]", table, row, action, useCache)
-
 	region := c.locateRegion(table, row, useCache)
 	conn := c.getRegionConnection(region.server)
 
@@ -204,7 +189,7 @@ func (c *Client) action(table, row []byte, action action, useCache bool, retries
 		case *exception:
 			if retries <= c.maxRetries {
 				// retry action
-				log.Info("Retrying action for the %d time", retries+1)
+				dlog.Info("exception retrying action rowkey: %s for the %d time", string(row), retries+1)
 				newr := c.action(table, row, action, false, retries+1)
 				result <- <-newr
 			} else {
@@ -220,13 +205,13 @@ func (c *Client) action(table, row []byte, action action, useCache bool, retries
 		err := conn.call(cl)
 
 		if err != nil {
-			log.Warning("Error return while attempting call [err=%#v]", err)
+			dlog.Warn("Error return while attempting call [err=%#v]", err)
 			// purge dead server
 			delete(c.servers, region.server)
 
 			if retries <= c.maxRetries {
 				// retry action
-				log.Info("Retrying action for the %d time", retries+1)
+				dlog.Info("call warning retrying action rowkey: %s for the %d time", string(row), retries+1)
 				c.action(table, row, action, false, retries+1)
 			}
 		}
@@ -278,8 +263,6 @@ func (c *Client) multiaction(table []byte, actions []multiaction, useCache bool,
 				}
 			}
 
-			log.Debug("Sending Actions [n=%d]", len(racts))
-
 			region_actions[i] = &proto.RegionAction{
 				Region: &proto.RegionSpecifier{
 					Type:  proto.RegionSpecifier_REGION_NAME.Enum(),
@@ -290,8 +273,6 @@ func (c *Client) multiaction(table []byte, actions []multiaction, useCache bool,
 
 			i++
 		}
-
-		log.Debug("Sending RegionActions [n=%d]", len(region_actions))
 
 		req := &proto.MultiRequest{
 			RegionAction: region_actions,
@@ -381,15 +362,10 @@ func (c *Client) locateRegion(table, row []byte, useCache bool) *regionInfo {
 	case *proto.GetResponse:
 		rr := newResultRow(r.GetResult())
 		if region := c.parseRegion(rr); region != nil {
-			log.Debug("Found region [region: %s]", region.name)
-
 			c.cacheLocation(table, region)
-
 			return region
 		}
 	}
-
-	log.Debug("Couldn't find the region: [table=%s] [row=%s] [region_row=%s]", table, row, regionRow)
 
 	return nil
 }
@@ -445,10 +421,8 @@ func (c *Client) parseRegion(rr *ResultRow) *regionInfo {
 		err := pb.Unmarshal(regionInfoBytes, &info)
 
 		if err != nil {
-			log.Error("Unable to parse region location: %#v", err)
+			dlog.Error("Unable to parse region location: %#v", err)
 		}
-
-		log.Debug("Parsed region info [name=%s]", rr.Row.String())
 
 		return &regionInfo{
 			server:         rr.Columns["info:server"].Value.String(),
@@ -461,7 +435,7 @@ func (c *Client) parseRegion(rr *ResultRow) *regionInfo {
 		}
 	}
 
-	log.Error("Unable to parse region location (no regioninfo column): %#v", rr)
+	dlog.Error("Unable to parse region location (no regioninfo column): %#v", rr)
 
 	return nil
 }

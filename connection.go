@@ -1,11 +1,11 @@
 package hbase
 
 import (
-	"github.com/cugbliwei/go-hbase/proto"
-	pb "github.com/golang/protobuf/proto"
-
 	"fmt"
 	"net"
+
+	"github.com/cugbliwei/go-hbase/proto"
+	pb "github.com/golang/protobuf/proto"
 )
 
 type connection struct {
@@ -28,8 +28,6 @@ var connectionIds *atomicCounter = newAtomicCounter()
 
 func newConnection(connstr, user string, isMaster bool) (*connection, error) {
 	id := connectionIds.IncrAndGet()
-
-	log.Debug("Connecting to server[id=%d] [%s]", id, connstr)
 
 	socket, err := net.Dial("tcp", connstr)
 
@@ -58,8 +56,6 @@ func newConnection(connstr, user string, isMaster bool) (*connection, error) {
 		return nil, err
 	}
 
-	log.Debug("Initiated connection [id=%d] [%s]", id, connstr)
-
 	return c, nil
 }
 
@@ -86,8 +82,7 @@ func (c *connection) writeHead() error {
 	buf.WriteByte(0)
 	buf.WriteByte(80)
 
-	n, err := c.socket.Write(buf.Bytes())
-	log.Debug("Outgoing Head [n=%d]", n)
+	_, err := c.socket.Write(buf.Bytes())
 	return err
 }
 
@@ -113,12 +108,10 @@ func (c *connection) writeConnectionHeader() error {
 		return err
 	}
 
-	n, err := c.socket.Write(buf.Bytes())
+	_, err = c.socket.Write(buf.Bytes())
 	if err != nil {
 		return err
 	}
-
-	log.Debug("Outgoing ConnHeader [n=%d]", n)
 
 	return nil
 }
@@ -155,8 +148,6 @@ func (c *connection) call(request *call) error {
 		return err
 	}
 
-	log.Debug("Sent bytes to server [callId=%d] [n=%d] [connection=%s]", id, n, c.name)
-
 	if n != len(buf.Bytes()) {
 		return fmt.Errorf("Sent bytes not match number bytes [n=%d] [actual_n=%d]", n, len(buf.Bytes()))
 	}
@@ -176,8 +167,6 @@ func (c *connection) processMessages() {
 		if err != nil {
 			panic(err)
 		}
-
-		log.Debug("Responseheader received [id=%d] [conn=%s]", rh.GetCallId(), c.name)
 
 		callId := rh.GetCallId()
 		call, ok := c.calls[int(callId)]

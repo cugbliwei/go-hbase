@@ -1,10 +1,10 @@
 package hbase
 
 import (
+	"bytes"
+
 	"github.com/cugbliwei/go-hbase/proto"
 	pb "github.com/golang/protobuf/proto"
-
-	"bytes"
 )
 
 type Put struct {

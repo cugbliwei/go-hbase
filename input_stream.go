@@ -38,8 +38,6 @@ func (in *inputStream) processData() [][]byte {
 		panic("Unexpected closed socket")
 	}
 
-	log.Debug("Awaiting bytes[n=%d]", nBytesExpecting)
-
 	if nBytesExpecting > 0 {
 		buf, err := in.readN(nBytesExpecting)
 
@@ -69,8 +67,6 @@ func (in *inputStream) processMessage(msg []byte) [][]byte {
 
 		payloads = append(payloads, hbytes)
 	}
-
-	log.Debug("Messages processed [n=%d]", len(payloads))
 
 	return payloads
 }

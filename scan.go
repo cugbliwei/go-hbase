@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cugbliwei/dlog"
 	"github.com/cugbliwei/go-hbase/proto"
 	pb "github.com/golang/protobuf/proto"
 )
@@ -119,7 +120,6 @@ func (s *Scan) Map(f func(*ResultRow)) {
 
 func (s *Scan) Close() {
 	if s.closed == false {
-		log.Debug("Closing scan: %d", s.id)
 		s.closeScan(s.server, s.location, s.id)
 		s.closed = true
 	}
@@ -213,12 +213,8 @@ func (s *Scan) getData(nextStart []byte) []*ResultRow {
 		})
 	}
 
-	log.Debug("sending scan request: [server=%s] [id=%d]", server.name, s.id)
-
 	cl := newCall(req)
 	server.call(cl)
-
-	log.Debug("sent scan request: [server=%s] [id=%d]", server.name, s.id)
 
 	select {
 	case msg := <-cl.responseCh:
@@ -234,7 +230,7 @@ func (s *Scan) processResponse(response pb.Message) []*ResultRow {
 	case *proto.ScanResponse:
 		res = r
 	default:
-		log.Error("Invalid response returned: %T", response)
+		dlog.Error("Invalid response returned: %T", response)
 		return nil
 	}
 
@@ -259,7 +255,6 @@ func (s *Scan) processResponse(response pb.Message) []*ResultRow {
 	}
 
 	if nextRegion {
-		log.Debug("Finished %s. Num results from region: %d. On to the next one.", s.location.name, lastRegionRows)
 		s.closeScan(s.server, s.location, s.id)
 		s.server = nil
 		s.location = nil
@@ -268,7 +263,6 @@ func (s *Scan) processResponse(response pb.Message) []*ResultRow {
 	}
 
 	if n == 0 && !nextRegion {
-		log.Debug("N == 0 and !nextRegion")
 		s.Close()
 	}
 
@@ -310,12 +304,9 @@ func (s *Scan) getServerAndLocation(table, startRow []byte) (server *connection,
 		location = s.location
 		return
 	}
-	log.Debug("Get next region to scan [table=%s] [startRow=%s]", table, startRow)
 
 	location = s.client.locateRegion(table, startRow, true)
 	server = s.client.getRegionConnection(location.server)
-
-	log.Debug("Got the next region to scan [table=%s] [regionName=%s] [conn=%s]", table, location.name, server.name)
 
 	s.server = server
 	s.location = location

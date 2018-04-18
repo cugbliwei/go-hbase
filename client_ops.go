@@ -1,13 +1,13 @@
 package hbase
 
 import (
-	"github.com/cugbliwei/go-hbase/proto"
-
 	"fmt"
+
+	"github.com/cugbliwei/go-hbase/proto"
 )
 
 func (c *Client) Get(table string, get *Get) (*ResultRow, error) {
-	ch := c.action([]byte(table), get.key, get, true, 0)
+	ch := c.action([]byte(table), get.key, get, false, 0)
 
 	response := <-ch
 	switch r := response.(type) {
@@ -33,9 +33,7 @@ func (c *Client) AsyncGets(table string, results chan *ResultRow, gets []*Get) {
 	for r := range ch {
 		switch rs := r.(type) {
 		case *proto.MultiResponse:
-			log.Debug("Received region action result [n=%d]", len(rs.GetRegionActionResult()))
 			for _, v := range rs.GetRegionActionResult() {
-				log.Debug("Received result or exceptions [n=%d]", len(v.GetResultOrException()))
 				for _, v2 := range v.GetResultOrException() {
 					if res := v2.GetResult(); res != nil {
 						results <- newResultRow(res)
@@ -44,8 +42,6 @@ func (c *Client) AsyncGets(table string, results chan *ResultRow, gets []*Get) {
 			}
 		}
 	}
-
-	log.Debug("Finished receiving region action results")
 
 	close(results)
 }

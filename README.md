@@ -1,11 +1,13 @@
 go-hbase
 ========
 
-UNMAINTAINED: See tsuna's implementation https://github.com/tsuna/gohbase
+此项目类似https://gitlab.yxapp.in/songwang11/nepenthes-java
 
-Implements a fully native HBase client for the Go programming language.
+由于之前是使用的nepenthes，但是服务不太稳定，超时情况时有发生，所以用golang client重写
 
 API Documentation: http://godoc.org/github.com/Lazyshot/go-hbase
+
+部署在app101：/data/go-hbase，端口：8089
 
 Supported Versions
 ------------------
@@ -14,72 +16,7 @@ HBase >= 0.96.0
 
 This version of HBase has a backwards incompatible change, which takes full use of protocol buffers for client interactions.
 
-Installation
-------------
-
-    go get github.com/lazyshot/go-hbase
-
-
-Example
+API
 -------
 
-
-```go
-package main
-
-import (
-	"github.com/lazyshot/go-hbase"
-
-	"fmt"
-	"log"
-)
-
-func main() {
-	client := hbase.NewClient([]string{"localhost"}, "/hbase")
-
-	put := hbase.CreateNewPut([]byte("test1"))
-	put.AddStringValue("info", "test_qual", "test_val")
-	res, err := client.Put("test", put)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if !res {
-		panic("No put results")
-	}
-	log.Println("Completed put")
-
-	get := hbase.CreateNewGet([]byte("test1"))
-	result, err := client.Get("test", get)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if !bytes.Equal(result.Row, []byte("test1")) {
-		panic("No row")
-	}
-
-	if !bytes.Equal(result.Columns["info:test_qual"].Value, []byte("test_val")) {
-		panic("Value doesn't match")
-	}
-
-	log.Println("Completed get")
-
-	results, err := client.Gets("test", []*hbase.Get{get})
-
-	if err != nil {
-		panic(err)
-	}
-
-	log.Printf("%#v", results)
-}
-```
-
-License
--------
-
-> Copyright (c) 2014-2015 Bryan Peterson. All rights reserved.
-> Use of this source code is governed by a BSD-style
-> license that can be found in the LICENSE file.
+restful接口详见server/main.go

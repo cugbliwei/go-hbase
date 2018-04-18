@@ -1,13 +1,13 @@
 package hbase
 
 import (
-	"github.com/cugbliwei/go-hbase/proto"
-	pb "github.com/golang/protobuf/proto"
-
 	"bytes"
 	"fmt"
 	"math"
 	"strings"
+
+	"github.com/cugbliwei/go-hbase/proto"
+	pb "github.com/golang/protobuf/proto"
 )
 
 type Delete struct {
